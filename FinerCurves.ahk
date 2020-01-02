@@ -5,7 +5,7 @@
 #Include <NvidiaInspector>
 #Include <Debugging/JSON>
  
-AutoGPU.Utilities.runAsAdmin()
+FinerCurves.Utilities.runAsAdmin()
 
 class FinerCurves {	
 	static gpuStats := {}
