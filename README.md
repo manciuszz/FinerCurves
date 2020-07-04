@@ -5,6 +5,12 @@ An experimental tool to control GPU clocks using "NVIDIA Inspector" by setting s
 The goal here was to achieve optimal performance of the GPU while also having extra control over its temperatures when gaming.   
 
 The motivation behind this was due to NVIDIA GPU Boost feature (atleast, the one in Kepler GTX 860M) downclocking super hard when it hits the throttle limits, resulting in crippling performance while gaming which usually results in a bad outcome in any situation.   
+
+# Preview
+
+GUI is still work in progress...
+![GUI Preview](/Media/GUI_Preview.png)
+
 # Notice
 
 This can cause crashes / instabilities to occur when the GPU is downclocking itself, but I guess that's more of a graphics card thing (more info: https://forums.anandtech.com/threads/why-you-should-not-use-afterburner-precision-to-overclock-maxwell-kepler.2432430/). Honestly, I find that really weird.   

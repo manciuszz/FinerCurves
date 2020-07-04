@@ -109,7 +109,7 @@ class FinerCurves {
 			Gui, +hwndgid +AlwaysOnTop +ToolWindow ;+E0x20
 			Gui, Color, ffffff
 			Gui, Add, Pic, w%width% h%height% Section Border 0xE hwndChartView
-			Gui, Show
+			Gui, Show,, Finer Curves GUI
 			
 			this.bindWindowHooks()
 		}
