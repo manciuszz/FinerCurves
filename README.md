@@ -9,7 +9,7 @@ The motivation behind this was due to NVIDIA GPU Boost feature (atleast, the one
 # Preview
 
 GUI is still work in progress...
-![GUI Preview](Media/GUI_Preview.png)
+![GUI Preview](../Media/GUI_Preview.png)
 
 # Notice
 
