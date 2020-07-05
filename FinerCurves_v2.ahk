@@ -59,8 +59,6 @@ class FinerCurves {
 
 			this.coreChartData := this.ChartData.create("line", this.temperatureRange, this._baseCoreClock)				
 			this.memoryChartData := this.ChartData.create("line", this.temperatureRange, this._baseMemoryClock)
-			
-			this.updateChart()
 		}
 		
 		bindWindowHooks() {
@@ -90,7 +88,8 @@ class FinerCurves {
 			}
 			
 			mousePositionInsideChart := this.CoordsToChartScreen(xPos, yPos, this.chart)
-			Tooltip % JSON.Dump(mousePositionInsideChart)
+			
+			Tooltip % JSON.Dump([{Temperature: mousePositionInsideChart.x}, { CoreClock: this.coreChartData.get(Floor(mousePositionInsideChart.x)).y / this.scaleRatio, MemoryClock: this.memoryChartData.get(Floor(mousePositionInsideChart.x)).y }, {PointValue: mousePositionInsideChart.y }])
 		}
 		
 		OnClick() {
@@ -102,14 +101,14 @@ class FinerCurves {
 			if (mousePositionInsideChart.x < 0 || mousePositionInsideChart.y < 0)
 				return
 			
-			this.updateCharts(mousePositionInsideChart.x, mousePositionInsideChart.y, mousePositionInsideChart.y) ; TODO: Seperate chart controls...
+			; this.addClocks(mousePositionInsideChart.x, mousePositionInsideChart.y, mousePositionInsideChart.y) ; TODO: Seperate chart controls...
+			; this.redrawCharts()
 		}
 		
 		createFrame(width := 640, height := 480) {
-			Gui, +hwndgid +AlwaysOnTop +ToolWindow ;+E0x20
+			Gui, +hwndgid ;+AlwaysOnTop +ToolWindow ;+E0x20
 			Gui, Color, ffffff
 			Gui, Add, Pic, w%width% h%height% Section Border 0xE hwndChartView
-			Gui, Show,, Finer Curves GUI
 			
 			this.bindWindowHooks()
 		}
@@ -130,18 +129,12 @@ class FinerCurves {
 		
 		redrawCharts() {
 			this.chart := this.drawCharts({ data: this.coreChartData, color: 0xffff0000 }, { data: this.memoryChartData, color: 0xff0000ff })
+			Gui, Show,, Finer Curves GUI
 		}
 		
-		updateChart(chart, x, y) {
-			chart.add(x, y)
-			this.redrawCharts()
-			return this
-		}
-		
-		updateCharts(temperatureLimit, coreClock, memoryClock) {
+		addClocks(temperatureLimit, coreClock, memoryClock) {
 			this.coreChartData.add(temperatureLimit, coreClock * this.scaleRatio)
 			this.memoryChartData.add(temperatureLimit, memoryClock)
-			this.redrawCharts()
 			return this
 		}
 	
@@ -169,6 +162,10 @@ class FinerCurves {
 				this["maxindex"] := idx
 				return this
 			}
+			
+			get(idx) {
+				return { x: this["x", idx], y: this["y", idx], maxIdx: this["maxindex"] }
+			}
 		}
 	}
 	
@@ -181,6 +178,12 @@ class FinerCurves {
 
 			; this.viewCharts := {} ; For testing purposes...
 			this.viewCharts := new FinerCurves.View(_baseCoreClock, _baseMemoryClock)
+			
+			OnExit(ObjBindMethod(this, "OnExit"))
+		}
+		
+		OnExit() {
+			this.gpuMonitor.stop()
 		}
 		
 		fetchStats() {
@@ -298,7 +301,6 @@ class FinerCurves {
 		setCurvePoint(perfState, temperatureLimit, clockValue, memoryClock) {
 			this.gpuClocks.coreClocks.set(perfState, temperatureLimit, clockValue)
 			this.gpuClocks.memoryClocks.set(perfState, temperatureLimit, memoryClock)
-			this.viewCharts.updateCharts(temperatureLimit, clockValue, memoryClock)
 			return this.gpuClocks
 		}
 		
@@ -376,8 +378,10 @@ class FinerCurves {
 	}
 	
 	class Tests {		
-		__New(parentInstance) {
+		__New(parentInstance, displayInfoFlags := "") {
 			this.parent := parentInstance
+			
+			this.displayFlags := displayInfoFlags
 			
 			; this.testApplyingClocks()
 			this.projectCalculatedClocks()
@@ -393,16 +397,33 @@ class FinerCurves {
 			MsgBox % JSON.Dump(calculatedClocks)
 		}
 		
-		projectCalculatedClocks() {		
+		projectCalculatedClocks() {	
+			if (!this.displayFlags)
+				return
+			
+			shouldEnableChart := RegExMatch(this.displayFlags, "CHART")
+			shouldDisplayDumpedInfo := RegExMatch(this.displayFlags, "DUMP")
+		
 			tempTestResults := {}
 			Loop % 100 {
 				currentTemp := A_Index - 1
 				if (currentTemp == "")
 					return
 							
-				tempTestResults[ currentTemp ] := this.parent.calculateClocksForTarget(currentTemp)
+				clockData := this.parent.calculateClocksForTarget(currentTemp)
+																
+				if (shouldDisplayDumpedInfo)
+					tempTestResults[ currentTemp ] := clockData
+				
+				if (shouldEnableChart)
+					this.parent.viewCharts.addClocks(currentTemp, clockData.coreClock.clockValue + (clockData.coreClock.perfState == "P0" ? this.parent.viewCharts._baseCoreClock : 0), clockData.memoryClock.clockValue + (clockData.memoryClock.perfState == "P0" ? this.parent.viewCharts._baseMemoryClock : 0))
 			}
-			NvAPI.HtmlBox(JSON.Dump(tempTestResults,, "`t"))
+						
+			if (shouldEnableChart)
+				this.parent.viewCharts.redrawCharts()
+				
+			if (shouldDisplayDumpedInfo)
+				NvAPI.HtmlBox(JSON.Dump(tempTestResults,, "`t"))
 		}
 		
 		projectCalculatedClocksForTarget(targetTemp) {
@@ -453,11 +474,11 @@ FinerCurves := new FinerCurves()
 	
 curveController := new FinerCurves.Controller(915, 2500)
 curveController.setCurvePoint("P0", 90, 797 * (1 - 0.15), 2000)
-curveController.setCurvePoint("P0", 85, 797, 2250)
-curveController.setCurvePoint("P0", 65, 915, 2500)
-curveController.setCurvePoint("P0", 50, 915, 2500)
+curveController.setCurvePoint("P0", 85, 797 + 50, 2250)
+curveController.setCurvePoint("P0", 65, 915 + 50, 2500)
+curveController.setCurvePoint("P0", 50, 915 + 50, 2500)
 
-; new FinerCurves.Tests(curveController)
+; new FinerCurves.Tests(curveController, "CHART|DUMP")
 
 ^Space:: InspectorAPI.GPU_Assistant.cycleStates()
 !Space:: curveController.toggleCoolingState()
