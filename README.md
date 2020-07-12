@@ -25,5 +25,6 @@ I can think of some solutions to this, most of them that I haven't tested yet:
 
 # TODO
 
+- Upgrade to a better GUI library (https://github.com/nnnik/gdiChartLib)
 - Finish writing the GUI for setting curve points.
 - Take into account current GPU load and application frames per second into the algorithm?

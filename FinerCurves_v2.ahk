@@ -244,8 +244,11 @@ class FinerCurves {
 			return { coreClock: modifiedCoreClock, memoryClock: modifiedMemoryClock, perfState: modifiedPerfState }
 		}
 		
-		clockUpdator() {
+		clockUpdator(cleanActiveClocks := false) {
 			static lastActiveClocks := {}
+			
+			if (cleanActiveClocks)
+				lastActiveClocks := {}
 			
 			latestStats := this.fetchStats()
 			
@@ -260,6 +263,9 @@ class FinerCurves {
 			modifiedCoreClock := calculatedClocks.coreClock.clockValue
 			modifiedMemoryClock := calculatedClocks.memoryClock.clockValue
 			
+			; Logger.print("State: " . currentPerfState . " | Last Core: " . lastActiveClocks.coreClock . " | Last Memory: " . lastActiveClocks.memoryClock)
+			; Logger.print("Mod State: " . calculatedClocks.perfState . " | Mod Core: " . modifiedCoreClock . " | Mod Memory: " . modifiedMemoryClock)
+
 			if (lastActiveClocks.coreClock == modifiedCoreClock && lastActiveClocks.memoryClock == modifiedMemoryClock)
 				return
 		
@@ -318,6 +324,7 @@ class FinerCurves {
 			}
 
 			start() {
+				this.clockUpdator(true)
 				FinerCurves.Utilities.setTimer(this.clockUpdator, this.refreshInterval)
 			}
 			
@@ -414,9 +421,9 @@ class FinerCurves {
 																
 				if (shouldDisplayDumpedInfo)
 					tempTestResults[ currentTemp ] := clockData
-				
+								
 				if (shouldEnableChart)
-					this.parent.viewCharts.addClocks(currentTemp, clockData.coreClock.clockValue + (clockData.coreClock.perfState == "P0" ? this.parent.viewCharts._baseCoreClock : 0), clockData.memoryClock.clockValue + (clockData.memoryClock.perfState == "P0" ? this.parent.viewCharts._baseMemoryClock : 0))
+					this.parent.viewCharts.addClocks(currentTemp, clockData.coreClock.clockValue + this.parent.viewCharts._baseCoreClock * (clockData.coreClock.perfState == "P0"), clockData.memoryClock.clockValue + this.parent.viewCharts._baseMemoryClock * (clockData.memoryClock.perfState == "P0"))
 			}
 						
 			if (shouldEnableChart)
@@ -474,9 +481,9 @@ FinerCurves := new FinerCurves()
 	
 curveController := new FinerCurves.Controller(915, 2500)
 curveController.setCurvePoint("P0", 90, 797 * (1 - 0.15), 2000)
-curveController.setCurvePoint("P0", 85, 797 + 50, 2250)
-curveController.setCurvePoint("P0", 65, 915 + 50, 2500)
-curveController.setCurvePoint("P0", 50, 915 + 50, 2500)
+curveController.setCurvePoint("P0", 85, 797 + 25, 2250)
+curveController.setCurvePoint("P0", 65, 915 + 25, 2500)
+curveController.setCurvePoint("P0", 50, 915 + 25, 2500)
 
 ; new FinerCurves.Tests(curveController, "CHART|DUMP")
 
